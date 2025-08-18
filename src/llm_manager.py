@@ -127,6 +127,44 @@ class LLMManager:
         response = self.generate(prompt)
         return response.content
     
+    def rewrite_query(self, query: str) -> str:
+        """Rewrite user query for clarity and retrieval effectiveness"""
+        prompt = f"""
+        Rewrite the following question to make it clearer and more detailed 
+        for retrieving information from a knowledge base. 
+        Keep the meaning the same.
+
+        Original Question: {query}
+        Rewritten Question:
+        """
+        response = self.generate(prompt)
+        return response.content.strip()
+
+    def expand_query(self, query: str, num_variants: int = 3) -> List[str]:
+        """Generate multiple alternative phrasings of the query"""
+        prompt = f"""
+        Generate {num_variants} different ways of asking the following question. 
+        Each variant should preserve the original meaning but use different wording.
+
+        Question: {query}
+
+        Variants:
+        """
+        response = self.generate(prompt)
+
+        # Extract lines
+        variants = []
+        for line in response.content.split("\n"):
+            line = line.strip(" -•*")
+            if line:
+                variants.append(line)
+
+        # Ensure we at least return the original query if nothing parsed
+        if not variants:
+            variants = [query]
+
+        return variants[:num_variants]
+    
     def answer_question(self, question: str, context: str) -> str:
         """
         Answer a question based on provided context

@@ -165,44 +165,70 @@ class RAGPipeline:
         return section_summaries
     
     def answer_question(self, question: str, k: int = 5) -> str:
-        """
-        Answer a question using RAG
-        
-        Args:
-            question: The question to answer
-            k: Number of relevant chunks to retrieve
-            
-        Returns:
-            Answer to the question
-        """
         try:
-            # Search for relevant chunks
-            relevant_chunks = self.embeddings_manager.similarity_search(question, k=k)
-            
-            if not relevant_chunks:
+            enhanced_queries = [question]
+
+            # --- Query Rewriting ---
+            if self.config.get("query_enhancement", {}).get("rewrite", False):
+                rewritten = self.llm_manager.rewrite_query(question)
+                if rewritten:
+                    enhanced_queries = [rewritten]
+                    logger.info(f"[Query Rewrite] Original: {question} → Rewritten: {rewritten}")
+
+            # --- Multi-query Expansion ---
+            if self.config.get("query_enhancement", {}).get("multi_query", False):
+                num_expansions = self.config.get("query_enhancement", {}).get("num_expansions", 3)
+                expanded = self.llm_manager.expand_query(enhanced_queries[0], num_variants=num_expansions)
+                enhanced_queries.extend(expanded)
+                logger.info(f"[Multi-query Expansion] Generated: {expanded}")
+
+            # Deduplicate
+            enhanced_queries = list(set([q.strip() for q in enhanced_queries if q.strip()]))
+
+            # --- Retrieval across queries ---
+            retrieval_log = {}
+            all_results = []
+
+            for q in enhanced_queries:
+                results = self.embeddings_manager.similarity_search(q, k=k)
+                retrieval_log[q] = results
+                all_results.extend(results)
+
+            # save the trace for Streamlit
+            self.last_retrieval_log = retrieval_log
+
+            # Deduplicate results (by content hash)
+            seen = set()
+            unique_results = []
+            for r in all_results:
+                if r["content"] not in seen:
+                    unique_results.append(r)
+                    seen.add(r["content"])
+
+            if not unique_results:
                 return "No relevant information found in the document to answer this question."
-            
-            # Combine relevant context
-            context = "\n\n".join([chunk['content'] for chunk in relevant_chunks])
-            
-            # Generate answer
+
+            # Combine context
+            context = "\n\n".join([chunk["content"] for chunk in unique_results[:k]])
+
+            # Generate final answer
             answer = self.llm_manager.answer_question(question, context)
-            
-            # Add citations if configured
-            if self.config.get('summarization', {}).get('include_citations', True):
+
+            # Add citations
+            if self.config.get("summarization", {}).get("include_citations", True):
                 citations = []
-                for chunk in relevant_chunks:
-                    page = chunk['metadata'].get('page', 'Unknown')
+                for chunk in unique_results[:k]:
+                    page = chunk["metadata"].get("page", "Unknown")
                     citations.append(f"Page {page}")
-                
                 if citations:
                     answer += f"\n\nSources: {', '.join(set(citations))}"
-            
+
             return answer
-        
+
         except Exception as e:
             logger.error(f"Error answering question: {str(e)}")
             return f"Error processing question: {str(e)}"
+
     
     def get_statistics(self) -> Dict[str, Any]:
         """Get current pipeline statistics"""

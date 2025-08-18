@@ -57,6 +57,70 @@ class LLMManager:
         prompt = f"""{length_instructions.get(summary_type)} of the following text:\n\n{text}"""
         return self.generate(prompt).content
 
+    def rewrite_query(self, query: str) -> str:
+        """Rewrite user query for clarity and retrieval effectiveness"""
+        prompt = f"""
+        You are optimizing a user question for document retrieval.
+
+        Rewrite the question into ONE detailed, standalone query that:
+        - preserves meaning
+        - removes pronouns/ambiguity (generalize unclear referents, e.g., "the individual described in the document")
+        - adds likely domain synonyms in parentheses (e.g., deductible (excess, out-of-pocket))
+        - includes relevant constraints (dates, sections, document type) if implied
+        - avoids meta text, instructions, options, lists, quotes, or asking for clarification
+
+        Examples:
+        Q: What's the deductible?
+        A: Identify the deductible (excess, out-of-pocket amount) defined in the insurance policy document, including the amount, conditions, and when it applies.
+
+        Q: tell me about his work experience and the tools he has used
+        A: Provide a detailed summary of the individual described in the document, including roles, employers, dates, responsibilities, and the key tools/technologies (software, frameworks, platforms) used in each role.
+
+        Now rewrite this:
+
+        Original Question: {query}
+        Rewritten Question:
+        """
+        response = self.generate(prompt)
+        rewritten = response.content.strip() if response and response.content else query
+        self.last_rewrite = rewritten  # for Streamlit UI debugging
+        return rewritten
+
+    def expand_query(self, query: str, num_variants: int = 4) -> List[str]:
+        """Generate multiple alternative phrasings of the query"""
+        prompt = f"""
+        Create {num_variants} diverse retrieval queries for the following question.
+        Mix styles among:
+        1) Verbose NL (rich detail, synonyms in parentheses)
+        2) Keyword-only (comma-separated terms & synonyms)
+        3) Boolean-style (use OR for synonyms, minimal punctuation)
+        4) Concise focused question
+        Rules:
+        - Preserve meaning
+        - No clarifying questions, no placeholders, no lists, no quotes, no explanations
+        - Output EXACTLY {num_variants} lines, one query per line
+
+        Question: {query}
+
+        Variants:
+        """
+        response = self.generate(prompt)
+
+        variants = []
+        if response and response.content:
+            for line in response.content.split("\n"):
+                line = line.strip(" -•*")
+                if line:
+                    variants.append(line)
+        
+        self.last_expansions = variants[:num_variants]
+
+        # Fallback: at least return original query
+        if not variants:
+            variants = [query]
+
+        return self.last_expansions
+
     def answer_question(self, question: str, context: str) -> str:
         prompt = f"""
         Based on the following context from a document, answer the question.

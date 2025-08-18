@@ -16,8 +16,8 @@ class EmbeddingsManager:
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.model_name = config.get('embeddings', {}).get('model_name', 'all-MiniLM-L6-v2')
-        self.chunk_size = config.get('embeddings', {}).get('chunk_size', 1000)
-        self.chunk_overlap = config.get('embeddings', {}).get('chunk_overlap', 200)
+        self.chunk_size = config.get('embeddings', {}).get('chunk_size', 750)
+        self.chunk_overlap = config.get('embeddings', {}).get('chunk_overlap', 150)
         
         # Initialize embedding model
         self.embedding_model = SentenceTransformer(self.model_name)
