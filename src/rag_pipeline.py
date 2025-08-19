@@ -10,6 +10,7 @@ from src.document_processor import PDFProcessor, DocumentChunk
 from src.embeddings_manager import EmbeddingsManager
 from src.llm_manager_gemini import LLMManager
 from src.utils import ConfigManager
+from src.retriever import HybridRetriever
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,13 @@ class RAGPipeline:
         
         logger.info("RAG Pipeline initialized successfully")
     
+        # Initialize Hybrid Retriever
+        cross_encoder_model = self.config.get("retrieval", {}).get("cross_encoder", None)
+        self.retriever = HybridRetriever(self.embeddings_manager, cross_encoder_model)
+
+        cross_encoder_model = self.config.get("retrieval", {}).get("cross_encoder", "BAAI/bge-reranker-v2-m3")
+        self.retriever = HybridRetriever(self.embeddings_manager, cross_encoder_model)
+
     def process_pdf(self, pdf_path: str, clear_existing: bool = True) -> RAGResult:
         """
         Process a PDF file through the complete RAG pipeline
@@ -63,6 +71,8 @@ class RAGPipeline:
             logger.info("Creating embeddings...")
             self.embeddings_manager.create_embeddings(chunks)
             
+
+
             # Step 3: Generate overall summary
             logger.info("Generating overall summary...")
             overall_summary = self._generate_overall_summary(chunks)
@@ -84,6 +94,11 @@ class RAGPipeline:
                 'vector_store_stats': self.embeddings_manager.get_collection_stats()
             }
             
+            # Build BM25 index for hybrid search
+            all_chunks = [{"content": c.content, "metadata": c.metadata} for c in chunks]
+            self.retriever.build_bm25_index(all_chunks)
+            
+                        
             result = RAGResult(
                 summary=overall_summary,
                 key_insights=key_insights,
@@ -191,7 +206,8 @@ class RAGPipeline:
             all_results = []
 
             for q in enhanced_queries:
-                results = self.embeddings_manager.similarity_search(q, k=k)
+                # results = self.embeddings_manager.similarity_search(q, k=k)
+                results = self.retriever.search(q, k=k)
                 retrieval_log[q] = results
                 all_results.extend(results)
 
