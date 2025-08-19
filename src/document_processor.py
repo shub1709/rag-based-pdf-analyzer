@@ -3,7 +3,7 @@ import re
 from typing import List, Dict, Any, Optional, Tuple
 import logging
 from dataclasses import dataclass
-
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 import PyPDF2
 import pdfplumber
 import pytesseract
@@ -260,10 +260,16 @@ class PDFProcessor:
         return text.strip()
     
     def _split_into_paragraphs(self, text: str) -> List[str]:
-        """Split text into paragraphs"""
-        # Split by double newlines or periods followed by capital letters
-        paragraphs = re.split(r'\n\n|\. (?=[A-Z])', text)
-        return [p.strip() for p in paragraphs if p.strip()]
+        """
+        Universal chunking strategy (replaces old paragraph splitter).
+        Uses RecursiveCharacterTextSplitter with overlap.
+        """
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=self.config.get("embeddings", {}).get("chunk_size", 500),
+            chunk_overlap=self.config.get("embeddings", {}).get("chunk_overlap", 50),
+            separators=["\n\n", "\n", ".", " ", ""]
+        )
+        return text_splitter.split_text(text)
     
     def _table_to_markdown(self, df: pd.DataFrame) -> str:
         """Convert DataFrame to markdown table format"""

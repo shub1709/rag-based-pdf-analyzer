@@ -5,6 +5,7 @@ from typing import Dict, Any, List, Optional
 import logging
 from dataclasses import dataclass
 
+import os
 from src.document_processor import PDFProcessor, DocumentChunk
 from src.embeddings_manager import EmbeddingsManager
 from src.llm_manager_gemini import LLMManager

@@ -5,10 +5,11 @@ from sentence_transformers import SentenceTransformer
 import chromadb
 from chromadb.config import Settings
 import numpy as np
-
+from openai import OpenAI
 from src.document_processor import DocumentChunk
 
 logger = logging.getLogger(__name__)
+# client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 class EmbeddingsManager:
     """Manages embeddings generation and vector store operations"""
@@ -33,6 +34,9 @@ class EmbeddingsManager:
         
         collection_name = config.get('vector_store', {}).get('collection_name', 'pdf_documents')
         self.collection = self.chroma_client.get_or_create_collection(name=collection_name)
+
+
+
     
     def create_embeddings(self, chunks: List[DocumentChunk]) -> None:
         """
