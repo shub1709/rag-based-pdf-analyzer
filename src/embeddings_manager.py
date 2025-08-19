@@ -5,7 +5,7 @@ from sentence_transformers import SentenceTransformer
 import chromadb
 from chromadb.config import Settings
 import numpy as np
-from openai import OpenAI
+# from openai import OpenAI
 from src.document_processor import DocumentChunk
 
 logger = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class EmbeddingsManager:
     """Manages embeddings generation and vector store operations"""
     
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], recreate_collection: bool = True):
         self.config = config
         self.model_name = config.get('embeddings', {}).get('model_name', 'all-MiniLM-L6-v2')
         self.chunk_size = config.get('embeddings', {}).get('chunk_size', 750)
@@ -33,10 +33,27 @@ class EmbeddingsManager:
         )
         
         collection_name = config.get('vector_store', {}).get('collection_name', 'pdf_documents')
-        self.collection = self.chroma_client.get_or_create_collection(name=collection_name)
 
+        # 🔥 Force recreation if embedding dimensions mismatch
+        if recreate_collection:
+            try:
+                self.chroma_client.delete_collection(collection_name)
+                logger.info(f"Deleted old collection: {collection_name}")
+            except Exception:
+                pass  # ignore if it doesn't exist
 
-
+            self.collection = self.chroma_client.create_collection(
+                name=collection_name,
+                metadata={"hnsw:space": "cosine"},
+                embedding_function=None
+            )
+        else:
+            # Default behavior (reuse if already exists)
+            self.collection = self.chroma_client.get_or_create_collection(
+                name=collection_name,
+                metadata={"hnsw:space": "cosine"},
+                embedding_function=None
+            )
     
     def create_embeddings(self, chunks: List[DocumentChunk]) -> None:
         """
