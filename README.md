@@ -43,8 +43,8 @@ LLM (Answer Generator) → Streamlit UI
 ### 1️⃣ Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/rag-pdf-analyzer.git
-cd rag-pdf-analyzer
+git clone https://github.com/shub1709/rag-based-pdf-analyzer.git
+cd rag-based-pdf-analyzer
 ```
 
 ### 2️⃣ Create Virtual Environment
@@ -101,13 +101,18 @@ Upload any PDF, ask questions like:
 ## 📂 Project Structure
 
 ```
-rag-pdf-analyzer/
-│── app.py              # Streamlit entry point
-│── rag_pipeline.py     # Core RAG pipeline (retriever, reranker, generator)
-│── config.yaml         # Config file for models, API keys, parameters
-│── requirements.txt    # Python dependencies
-│── utils/              # Helpers (PDF parsing, chunking, etc.)
-│── docs/               # Architecture diagrams, screenshots
+rag-based-pdf-analyzer/
+│── app.py                  # Streamlit entry point
+│── src/                    # Core RAG pipeline (retriever, reranker, generator)
+    │── rag_pipeline.py
+    │── llm_manager.py     
+    │── document_processor.py     
+    │── embeddigns_manager.py     
+    │── retriever.py     
+    │── utils.py     
+│── config.yaml             # Config file for models, API keys, parameters
+│── requirements.txt        # Python dependencies
+│── utils/                  # Helpers (PDF parsing, chunking, etc.)
 ```
 
 ---
@@ -116,7 +121,6 @@ rag-pdf-analyzer/
 
 * [ ] Multi-PDF support
 * [ ] Metadata-aware search (e.g., by section/page)
-* [ ] Hybrid retrieval (BM25 + embeddings)
 * [ ] Caching frequent queries
 * [ ] Dockerized deployment
 
