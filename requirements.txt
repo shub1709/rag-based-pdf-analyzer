@@ -61,6 +61,7 @@ ipython==9.2.0
 ipython_pygments_lexers==1.1.1
 jedi==0.19.2
 Jinja2==3.1.6
+jiter==0.10.0
 joblib==1.5.1
 jsonpatch==1.33
 jsonpointer==3.0.0
@@ -90,6 +91,7 @@ numpy==2.2.6
 oauthlib==3.3.1
 ollama==0.5.3
 onnxruntime==1.22.1
+openai==1.100.0
 opencv-python==4.12.0.88
 opencv-python-headless==4.12.0.88
 openpyxl==3.1.5
@@ -139,6 +141,7 @@ python-multipart==0.0.20
 pytz==2025.2
 PyYAML==6.0.2
 pyzmq==26.4.0
+rank-bm25==0.2.2
 referencing==0.36.2
 regex==2025.7.34
 requests==2.32.4
